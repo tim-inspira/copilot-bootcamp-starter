@@ -52,7 +52,7 @@ jobs:
         uses: skills/action-keyphrase-checker@v1
         with:
           text-file: packages/backend/src/app.js
-          keyphrase: 'app.delete('
+          keyphrase: 'app.delete'
           minimum-occurrences: 1
           case-sensitive: false
 
@@ -75,7 +75,7 @@ jobs:
             step_number: 2
             passed: ${{ !contains(steps.*.outcome, 'failure') }}
             results_table:
-              - description: "The text 'app.delete(' should appear in the file packages/backend/src/app.js"
+              - description: "The text 'app.delete' should appear in the file packages/backend/src/app.js"
                 passed: ${{ steps.check-backend.outcome == 'success' }}
               - description: "The text 'delete' should appear in the file packages/frontend/src/App.js"
                 passed: ${{ steps.check-frontend.outcome == 'success' }}

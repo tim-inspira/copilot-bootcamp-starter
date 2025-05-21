@@ -1,0 +1,106 @@
+name: Step 0 # Start Exercise
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+env:
+  STEP_1_FILE: ".github/steps/1-preparing.md"
+
+jobs:
+  start_exercise:
+    if: |
+      !github.event.repository.is_template
+    name: Start Exercise
+    uses: skills/exercise-toolkit/.github/workflows/start-exercise.yml@v0.4.0
+    with:
+      exercise-title: "GitHub Copilot Bootcamp"
+      intro-message: "Welcome to the Copilot Bootcamp tutorial! 🚀 This guided experience will take you through setting up your development environment with GitHub Codespaces, using GitHub Copilot's Agent Mode to modify the app's title, and then implementing new features. Get ready to experience the power of AI-assisted coding in a cloud development environment! 💻✨"
+
+  post_next_step_content:
+    name: Post next step content
+    runs-on: ubuntu-latest
+    needs: [start_exercise]
+    env:
+      ISSUE_URL: ${{ needs.start_exercise.outputs.issue-url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get response templates
+        uses: actions/checkout@v4
+        with:
+          repository: skills/exercise-toolkit
+          path: exercise-toolkit
+          ref: v0.4.0
+
+      - name: Build comment - add step content
+        id: build-comment
+        uses: skills/action-text-variables@v2
+        with:
+          template-file: ${{ env.STEP_1_FILE }}
+          template-vars: |
+            login: ${{ github.actor }}
+            full_repo_name: ${{ github.repository }}
+
+      - name: Create comment - add step content
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body "$ISSUE_BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ steps.build-comment.outputs.updated-text }}
+
+      - name: Create comment - watching for progress
+        run: |
+          gh issue comment "$ISSUE_URL" \
+            --body-file "exercise-toolkit/markdown-templates/step-feedback/watching-for-progress.md"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Disable current workflow and enable next one
+        run: |
+          gh workflow enable "Step 1"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+
+          
+      # - name: Create comment - next step instructions
+      #   run: |
+      #     gh issue comment "$ISSUE_URL" \
+      #       --body $'### Next Step: Implementing Delete Functionality\n\nOnce you have successfully changed the title to "Hello World", you\'ll be ready to implement the delete functionality using GitHub Copilot\'s Agent mode.\n\nTo continue to the next step, check out the instructions below 👇'
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Build comment - next step content
+      #   id: build-next-comment
+      #   uses: skills/action-text-variables@v2
+      #   with:
+      #     template-file: ${{ env.STEP_1_FILE }}
+      #     template-vars: |
+      #       login: ${{ github.actor }}
+      #       full_repo_name: ${{ github.repository }}
+
+      # - name: Create comment - next step content
+      #   run: |
+      #     gh issue comment "$ISSUE_URL" \
+      #       --body "$NEXT_ISSUE_BODY"
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     NEXT_ISSUE_BODY: ${{ steps.build-next-comment.outputs.updated-text }}
+
+      # - name: Enable verification workflows
+      #   run: |
+      #     gh workflow enable "Verify Delete Functionality"
+      #     gh workflow enable "Verify Title Change"
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

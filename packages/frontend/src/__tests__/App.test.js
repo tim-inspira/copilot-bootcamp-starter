@@ -37,6 +37,24 @@ const server = setupServer(
         created_at: new Date().toISOString(),
       })
     );
+  }),
+  
+  // DELETE /api/items/:id handler
+  rest.delete('/api/items/:id', (req, res, ctx) => {
+    const { id } = req.params;
+    
+    // If the id parameter is invalid, return a 404
+    if (id !== '1' && id !== '2') {
+      return res(
+        ctx.status(404),
+        ctx.json({ error: 'Item not found' })
+      );
+    }
+    
+    return res(
+      ctx.status(200),
+      ctx.json({ message: 'Item deleted successfully' })
+    );
   })
 );
 
@@ -95,6 +113,67 @@ describe('App Component', () => {
     // Check that the new item appears
     await waitFor(() => {
       expect(screen.getByText('New Test Item')).toBeInTheDocument();
+    });
+  });
+
+  test('deletes an item', async () => {
+    const user = userEvent.setup();
+    
+    await act(async () => {
+      render(<App />);
+    });
+    
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+    });
+    
+    // Find the delete button for Test Item 1
+    const deleteButton = screen.getAllByText('Delete')[0];
+    
+    // Click the delete button
+    await act(async () => {
+      await user.click(deleteButton);
+    });
+    
+    // Check that the item is removed
+    await waitFor(() => {
+      expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
+      // Test Item 2 should still be there
+      expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    });
+  });
+
+  test('handles delete API error', async () => {
+    // Override the DELETE handler to simulate an error
+    server.use(
+      rest.delete('/api/items/:id', (req, res, ctx) => {
+        return res(ctx.status(500));
+      })
+    );
+    
+    const user = userEvent.setup();
+    
+    await act(async () => {
+      render(<App />);
+    });
+    
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.queryByText('Loading data...')).not.toBeInTheDocument();
+    });
+    
+    // Find any delete button
+    const deleteButton = screen.getAllByText('Delete')[0];
+    
+    // Click the delete button
+    await act(async () => {
+      await user.click(deleteButton);
+    });
+    
+    // Check for error message
+    await waitFor(() => {
+      expect(screen.getByText(/Error deleting item/)).toBeInTheDocument();
     });
   });
 
